@@ -1,3 +1,3 @@
 # VideoFrames
 
-A description of this package.
+Convert between Image Frames and Video
