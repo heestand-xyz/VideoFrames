@@ -13,9 +13,10 @@ public enum VideoFormat: String, CaseIterable {
 }
 
 public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
-    guard !images.isEmpty else {
-        throw VideoFramesError.framesIsEmpty
-    }
+    precondition(!images.isEmpty)
+    precondition(fps > 0)
+    precondition(kbps > 0)
+
     let size: CGSize = images.first!.size
     
     let writer = try AVAssetWriter(url: url, fileType: format.fileType)

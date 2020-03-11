@@ -13,7 +13,6 @@ public typealias _Image = UIImage
 
 public enum VideoFramesError: Error {
     case videoNotFound
-    case framesIsEmpty
     case framePixelBuffer(String)
     case videoInfo(String)
 }
