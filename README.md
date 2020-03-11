@@ -1,3 +1,3 @@
 # VideoFrames
 
-Convert between Image Frames and Video
+Convert between Video and Image Frames 

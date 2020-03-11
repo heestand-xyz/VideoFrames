@@ -14,6 +14,8 @@ public typealias _Image = UIImage
 public enum VideoFramesError: Error {
     case videoNotFound
     case videoInfoFail
+    case framesIsEmpty
+    case framePixelBuffer(String)
 }
 
 struct VideoInfo {

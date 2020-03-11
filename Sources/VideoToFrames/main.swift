@@ -3,12 +3,12 @@ import Cocoa
 import VideoFrames
 import ArgumentParser
 
-enum FramesError: Error {
+enum VideoToFramesError: Error {
     case videoNotFound
     case videoFrameBadData
 }
 
-struct Frames: ParsableCommand {
+struct VideoToFrames: ParsableCommand {
 
     @Argument()
     var video: URL
@@ -18,7 +18,7 @@ struct Frames: ParsableCommand {
     
     func run() throws {
         guard FileManager.default.fileExists(atPath: video.path) else {
-            throw FramesError.videoNotFound
+            throw VideoToFramesError.videoNotFound
         }
         if !FileManager.default.fileExists(atPath: folder.path) {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -29,12 +29,13 @@ struct Frames: ParsableCommand {
             let name: String = "\(videoName)_\("\(index)".zfill(5)).png"
             let url: URL = self.folder.appendingPathComponent(name)
             guard let data = image.png else {
-                throw FramesError.videoFrameBadData
+                throw VideoToFramesError.videoFrameBadData
             }
             try data.write(to: url)
         })
+        print("done!")
     }
     
 }
 
-Frames.main()
+VideoToFrames.main()

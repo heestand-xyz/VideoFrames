@@ -14,23 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "VideoFrames"
-               BuildableName = "VideoFrames"
-               BlueprintName = "VideoFrames"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "frames"
-               BuildableName = "frames"
-               BlueprintName = "frames"
+               BlueprintIdentifier = "VideoToFrames"
+               BuildableName = "VideoToFrames"
+               BlueprintName = "VideoToFrames"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,34 +31,6 @@
                BlueprintIdentifier = "VideoFramesTests"
                BuildableName = "VideoFramesTests"
                BlueprintName = "VideoFramesTests"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "VideoToFrames"
-               BuildableName = "VideoToFrames"
-               BlueprintName = "VideoToFrames"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FramesToVideo"
-               BuildableName = "FramesToVideo"
-               BlueprintName = "FramesToVideo"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -110,21 +68,12 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FramesToVideo"
-            BuildableName = "FramesToVideo"
-            BlueprintName = "FramesToVideo"
+            BlueprintIdentifier = "VideoToFrames"
+            BuildableName = "VideoToFrames"
+            BlueprintName = "VideoToFrames"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "frames"
-            BuildableName = "frames"
-            BlueprintName = "frames"
-            ReferencedContainer = "container:">
-         </BuildableReference>
-      </MacroExpansion>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -136,9 +85,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FramesToVideo"
-            BuildableName = "FramesToVideo"
-            BlueprintName = "FramesToVideo"
+            BlueprintIdentifier = "VideoToFrames"
+            BuildableName = "VideoToFrames"
+            BlueprintName = "VideoToFrames"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
