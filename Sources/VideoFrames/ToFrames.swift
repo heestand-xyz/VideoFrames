@@ -16,11 +16,12 @@ public func convertVideoToFrames(from url: URL) throws -> [_Image] {
     return frames
 }
 
-public func convertVideoToFramesSync(from url: URL, frame: (_Image, Int) throws -> ()) throws {
+public func convertVideoToFramesSync(from url: URL, frame: (_Image, Int, Int) throws -> ()) throws {
     let asset = try makeAsset(from: url)
-    for i in 0..<asset.info.frameCount {
+    let count: Int = asset.info.frameCount
+    for i in 0..<count {
         let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
-        try frame(image, i)
+        try frame(image, i, count)
     }
 }
 
@@ -54,26 +55,23 @@ func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImag
         throw VideoFramesError.videoNotFound
     }
     let asset: AVAsset = AVAsset(url: url)
-    guard let info: VideoInfo = VideoInfo(asset: asset) else {
-        throw VideoFramesError.videoInfoFail
-    }
+    let info: VideoInfo = try VideoInfo(asset: asset)
     let generator: AVAssetImageGenerator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
+//    generator.requestedTimeToleranceBefore = CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
+//    generator.requestedTimeToleranceAfter = CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
     return (info, generator)
 }
 
 func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) throws -> _Image {
-    let time: CMTime = getTime(at: frameIndex, fps: info.fps)
-    let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: nil)
+    let time: CMTime = CMTime(value: CMTimeValue(frameIndex), timescale: CMTimeScale(info.fps))
+    var actualTime: CMTime = CMTime(value: -1, timescale: 1)
+    let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: &actualTime)
+    print("TIME", frameIndex, "-->", time.seconds * Double(info.fps),  "-->", actualTime.seconds * Double(info.fps))
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
     #else
     let image: UIImage = UIImage(cgImage: cgImage)
     #endif
     return image
-}
-
-func getTime(at frameIndex: Int, fps: Double) -> CMTime {
-    let seconds: Double = (Double(frameIndex) + 0.5) / fps
-    return CMTimeMakeWithSeconds(seconds, preferredTimescale: Int32(NSEC_PER_SEC))
 }

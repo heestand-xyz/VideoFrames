@@ -12,7 +12,7 @@ public enum VideoFormat: String, CaseIterable {
     }
 }
 
-public func convertFramesToVideo(images: [_Image], fps: Int = 30, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
     guard !images.isEmpty else {
         throw VideoFramesError.framesIsEmpty
     }
@@ -20,11 +20,21 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, as format: Vid
     
     let writer = try AVAssetWriter(url: url, fileType: format.fileType)
 
+    let bps: Int = kbps * 1_000 * 8
+    
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
         AVVideoCodecKey: AVVideoCodecH264,
         AVVideoWidthKey: size.width,
         AVVideoHeightKey: size.height,
+        AVVideoCompressionPropertiesKey: [
+            AVVideoAverageBitRateKey: bps,
+//            AVVideoMaxKeyFrameIntervalKey: fps,
+//            AVVideoExpectedSourceFrameRateKey: fps,
+//            AVVideoMaxKeyFrameIntervalDurationKey: 1.0 / Double(fps),
+        ],
     ])
+//    input.mediaTimeScale = 30000 //CMTimeScale(fps * 1000)
+    
     writer.add(input)
 
     let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
@@ -47,8 +57,8 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, as format: Vid
 
     input.requestMediaDataWhenReady(on: queue, using: {
         while input.isReadyForMoreMediaData && frameIndex < images.count {
-            let lastFrameTime: CMTime = CMTimeMake(value: Int64(frameIndex), timescale: Int32(fps))
-            let presentationTime: CMTime = frameIndex == 0 ? lastFrameTime : CMTimeAdd(lastFrameTime, frameDuration)
+            let time: CMTime = CMTimeMake(value: Int64(frameIndex), timescale: Int32(fps))
+            let presentationTime: CMTime = frameIndex == 0 ? time : CMTimeAdd(time, frameDuration)
             let image: _Image = images[frameIndex]
             do {
                 let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: image)

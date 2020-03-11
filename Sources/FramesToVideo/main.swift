@@ -21,6 +21,9 @@ struct VideoToFrames: ParsableCommand {
     @Option(name: .long)
     var fps: Int?
     
+    @Option(name: .long)
+    var kbps: Int?
+    
     func run() throws {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir) else {
@@ -49,7 +52,6 @@ struct VideoToFrames: ParsableCommand {
             }
             try FileManager.default.removeItem(at: video)
         }
-        print("image count:", images.count)
         let format: String = video.pathExtension
         guard let videoFormat: VideoFormat = VideoFormat(rawValue: format) else {
             print("supported formats: \(VideoFormat.allCases.map({ $0.rawValue }).joined(separator: ", "))")
@@ -58,9 +60,11 @@ struct VideoToFrames: ParsableCommand {
         var result: Result<Void, Error>!
         let group = DispatchGroup()
         group.enter()
-        try convertFramesToVideo(images: images, fps: fps ?? 30, as: videoFormat, url: video, frame: { index in
-            print("frame", index)
+        try convertFramesToVideo(images: images, fps: fps ?? 30, kbps: kbps ?? 100, as: videoFormat, url: video, frame: { index in
+            print(index + 1, "/", images.count, "\r", terminator: "")
+            fflush(stdout)
         }, completion: { res in
+            print("            \r", terminator: "")
             result = res
             group.leave()
         })

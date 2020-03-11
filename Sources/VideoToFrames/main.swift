@@ -24,8 +24,9 @@ struct VideoToFrames: ParsableCommand {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         }
         let videoName: String = video.deletingPathExtension().lastPathComponent
-        try convertVideoToFramesSync(from: video, frame: { image, index in
-            print("frame", index)
+        try convertVideoToFramesSync(from: video, frame: { image, index, count in
+            print(index, "/", count, "\r", terminator: "")
+            fflush(stdout)
             let name: String = "\(videoName)_\("\(index)".zfill(5)).png"
             let url: URL = self.folder.appendingPathComponent(name)
             guard let data = image.png else {
@@ -33,6 +34,7 @@ struct VideoToFrames: ParsableCommand {
             }
             try data.write(to: url)
         })
+        print("            \r", terminator: "")
         print("done!")
     }
     
