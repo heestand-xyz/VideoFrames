@@ -16,32 +16,38 @@ public func convertVideoToFrames(from url: URL) throws -> [_Image] {
     return frames
 }
 
-public func convertVideoToFramesAsync(from url: URL, frame: @escaping (_Image, Int) -> (), done: @escaping () -> (), failed: @escaping (Error) -> ()) throws {
+public func convertVideoToFramesSync(from url: URL, frame: (_Image, Int) throws -> ()) throws {
     let asset = try makeAsset(from: url)
-    var sum: Int = 0
-    var cancel: Bool = false
     for i in 0..<asset.info.frameCount {
-        DispatchQueue.global().async {
-            guard !cancel else { return }
-            print("r", i)
-            do {
-                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
-                print("x", i)
-                DispatchQueue.main.async {
-                    guard !cancel else { return }
-                    frame(image, i)
-                    sum += 1
-                    if sum == asset.info.frameCount {
-                        done()
-                    }
-                }
-            } catch {
-                cancel = true
-                failed(error)
-            }
-        }
+        let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+        try frame(image, i)
     }
 }
+
+//public func convertVideoToFramesAsync(from url: URL, on queue: DispatchQueue = .main, frame: @escaping (_Image, Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+//    let asset = try makeAsset(from: url)
+//    var sum: Int = 0
+//    var cancel: Bool = false
+//    for i in 0..<asset.info.frameCount {
+//        DispatchQueue.global().async {
+//            guard !cancel else { return }
+//            do {
+//                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+//                queue.async {
+//                    guard !cancel else { return }
+//                    frame(image, i)
+//                    sum += 1
+//                    if sum == asset.info.frameCount {
+//                        completion(.success(()))
+//                    }
+//                }
+//            } catch {
+//                cancel = true
+//                completion(.failure(error))
+//            }
+//        }
+//    }
+//}
 
 func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
     guard FileManager.default.fileExists(atPath: url.path) else {
@@ -57,8 +63,7 @@ func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImag
 }
 
 func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) throws -> _Image {
-    let seconds: Double = Double(frameIndex) / info.fps
-    let time: CMTime = CMTimeMakeWithSeconds(seconds, preferredTimescale: Int32(NSEC_PER_SEC))
+    let time: CMTime = getTime(at: frameIndex, fps: info.fps)
     let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: nil)
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
@@ -66,4 +71,9 @@ func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageG
     let image: UIImage = UIImage(cgImage: cgImage)
     #endif
     return image
+}
+
+func getTime(at frameIndex: Int, fps: Double) -> CMTime {
+    let seconds: Double = (Double(frameIndex) + 0.5) / fps
+    return CMTimeMakeWithSeconds(seconds, preferredTimescale: Int32(NSEC_PER_SEC))
 }

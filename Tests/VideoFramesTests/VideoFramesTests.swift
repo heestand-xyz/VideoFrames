@@ -18,22 +18,25 @@ final class VideoFramesTests: XCTestCase {
     
     #if os(macOS)
     
-    func testConvertVideoToFramesAsync() {
-        let expectation = self.expectation(description: "Render")
-        var frames: [Int] = []
-        try! convertVideoToFramesAsync(from: videoURL, frame: { image, index in
-            frames.append(index)
-            print("render", index)
-        }, done: {
-            expectation.fulfill()
-        }) { error in
-            XCTFail(error.localizedDescription)
-            expectation.fulfill()
-        }
-        waitForExpectations(timeout: 1, handler: nil)
-        print(frames)
-        XCTAssertEqual(frames.count, 100)
-    }
+//    func testConvertVideoToFramesAsync() {
+//        let expectation = self.expectation(description: "Render")
+//        var frames: [Int] = []
+//        try! convertVideoToFramesAsync(from: videoURL, frame: { image, index in
+//            frames.append(index)
+//            print("render", index)
+//        }) { result in
+//            switch result {
+//            case .success:
+//                break
+//            case .failure(let error):
+//                XCTFail(error.localizedDescription)
+//            }
+//            expectation.fulfill()
+//        }
+//        waitForExpectations(timeout: 1, handler: nil)
+//        print(frames)
+//        XCTAssertEqual(frames.count, 100)
+//    }
     
     func testConvertVideoToFrames() {
         let frames: [NSImage] = try! convertVideoToFrames(from: videoURL)
