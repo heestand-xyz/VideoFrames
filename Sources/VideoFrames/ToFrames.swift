@@ -6,38 +6,47 @@ import UIKit
 #endif
 import AVFoundation
 
-//#if os(macOS)
-//public func convertVideoToFrames(url: URL) throws -> [_Image] {
-//
-//}
-//#endif
-
-//public func convertVideoToFramesAsync(from url: URL, frame: @escaping (_Image) -> (), done: @escaping () -> ()) throws {
-//    let generator: AVAssetImageGenerator = makeGenerator(url: url)
-//    DispatchQueue.global(qos: .background).async {
-//        func next() {
-//
-//        }
-//        for i in 0..<info.frameCount {
-//            let image: _Image = getFrame(at: i, info: info, with: generator)
-//            DispatchQueue.main.async {
-//                frame(image)
-//            }
-//        }
-//    }
-//}
-
 public func convertVideoToFrames(from url: URL) throws -> [_Image] {
     var frames: [_Image] = []
-//    let (VideoInfo...generator: AVAssetImageGenerator = try makeGenerator(from: url)
-//    for i in 0..<info.frameCount {
-//        let image: _Image = getFrame(at: i, info: info, with: generator)
-//        frames.append(image)
-//    }
+    let asset = try makeAsset(from: url)
+    for i in 0..<asset.info.frameCount {
+        let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+        frames.append(image)
+    }
     return frames
 }
 
-func makeGenerator(from url: URL) throws -> (VideoInfo, AVAssetImageGenerator) {
+public func convertVideoToFramesAsync(from url: URL, frame: @escaping (_Image, Int) -> (), done: @escaping () -> (), failed: @escaping (Error) -> ()) throws {
+    let asset = try makeAsset(from: url)
+    var sum: Int = 0
+    var cancel: Bool = false
+    for i in 0..<asset.info.frameCount {
+        DispatchQueue.global().async {
+            guard !cancel else { return }
+            print("r", i)
+            do {
+                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+                print("x", i)
+                DispatchQueue.main.async {
+                    guard !cancel else { return }
+                    frame(image, i)
+                    sum += 1
+                    if sum == asset.info.frameCount {
+                        done()
+                    }
+                }
+            } catch {
+                cancel = true
+                failed(error)
+            }
+        }
+    }
+}
+
+func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
+    guard FileManager.default.fileExists(atPath: url.path) else {
+        throw VideoFramesError.videoNotFound
+    }
     let asset: AVAsset = AVAsset(url: url)
     guard let info: VideoInfo = VideoInfo(asset: asset) else {
         throw VideoFramesError.videoInfoFail

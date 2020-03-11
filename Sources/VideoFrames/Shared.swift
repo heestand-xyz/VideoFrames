@@ -12,6 +12,7 @@ public typealias _Image = UIImage
 #endif
 
 public enum VideoFramesError: Error {
+    case videoNotFound
     case videoInfoFail
 }
 
