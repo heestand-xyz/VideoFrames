@@ -22,6 +22,8 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 10
 
     let bps: Int = kbps * 1_000 * 8
     
+    // FPS (29,97 / 999) * 1000 == 30
+    
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
         AVVideoCodecKey: AVVideoCodecH264,
         AVVideoWidthKey: size.width,
