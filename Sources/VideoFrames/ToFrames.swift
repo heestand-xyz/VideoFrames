@@ -58,8 +58,8 @@ func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImag
     let info: VideoInfo = try VideoInfo(asset: asset)
     let generator: AVAssetImageGenerator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
-//    generator.requestedTimeToleranceBefore = CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
-//    generator.requestedTimeToleranceAfter = CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
+    generator.requestedTimeToleranceBefore = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
+    generator.requestedTimeToleranceAfter = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
     return (info, generator)
 }
 
@@ -67,7 +67,7 @@ func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageG
     let time: CMTime = CMTime(value: CMTimeValue(frameIndex), timescale: CMTimeScale(info.fps))
     var actualTime: CMTime = CMTime(value: -1, timescale: 1)
     let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: &actualTime)
-    print("TIME", frameIndex, "-->", time.seconds * Double(info.fps),  "-->", actualTime.seconds * Double(info.fps))
+//    print("TIME", frameIndex, "-->", time.seconds * Double(info.fps),  "-->", actualTime.seconds * Double(info.fps))
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
     #else

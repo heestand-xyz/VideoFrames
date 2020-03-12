@@ -76,11 +76,11 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/hexagons/Code/Frameworks/Development/VideoFrames/Resources/Count"
+            argument = "~/Code/Frameworks/Development/VideoFrames/Resources/Count"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/hexagons/Code/Frameworks/Development/VideoFrames/Resources/Count2.mov"
+            argument = "~/Code/Frameworks/Development/VideoFrames/Resources/Count.mov"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

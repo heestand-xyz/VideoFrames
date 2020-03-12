@@ -24,6 +24,7 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 10
     let bps: Int = kbps * 1_000 * 8
     
     // FPS (29,97 / 999) * 1000 == 30
+    // FPS (29,7 / 99) * 100 == 30
     
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
         AVVideoCodecKey: AVVideoCodecH264,
@@ -55,17 +56,16 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 10
 
     let queue = DispatchQueue(label: "render")
 
-    let frameDuration: CMTime = CMTimeMake(value: 1, timescale: Int32(fps))
     var frameIndex: Int = 0
 
     input.requestMediaDataWhenReady(on: queue, using: {
         while input.isReadyForMoreMediaData && frameIndex < images.count {
             let time: CMTime = CMTimeMake(value: Int64(frameIndex), timescale: Int32(fps))
-            let presentationTime: CMTime = frameIndex == 0 ? time : CMTimeAdd(time, frameDuration)
+//            print("TIME", frameIndex, "-->", time.seconds * Double(fps))
             let image: _Image = images[frameIndex]
             do {
                 let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: image)
-                adaptor.append(pixelBuffer, withPresentationTime: presentationTime)
+                adaptor.append(pixelBuffer, withPresentationTime: time)
                 frame(frameIndex)
                 frameIndex += 1
             } catch {
