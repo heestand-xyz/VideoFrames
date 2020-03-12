@@ -12,12 +12,18 @@ public enum VideoFormat: String, CaseIterable {
     }
 }
 
-public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
-    precondition(!images.isEmpty)
+public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+    try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: frame, completion: completion)
+}
+
+public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_Image), fps: Int = 30, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+    precondition(count > 0)
     precondition(fps > 0)
     precondition(kbps > 0)
+    
+    let imageZero: _Image = try image(0)
 
-    let size: CGSize = images.first!.size
+    let size: CGSize = imageZero.size
     
     let writer = try AVAssetWriter(url: url, fileType: format.fileType)
 
@@ -59,11 +65,11 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 10
     var frameIndex: Int = 0
 
     input.requestMediaDataWhenReady(on: queue, using: {
-        while input.isReadyForMoreMediaData && frameIndex < images.count {
+        while input.isReadyForMoreMediaData && frameIndex < count {
             let time: CMTime = CMTimeMake(value: Int64(frameIndex), timescale: Int32(fps))
 //            print("TIME", frameIndex, "-->", time.seconds * Double(fps))
-            let image: _Image = images[frameIndex]
             do {
+                let image: _Image = frameIndex > 0 ? try image(frameIndex) : imageZero
                 let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: image)
                 adaptor.append(pixelBuffer, withPresentationTime: time)
                 frame(frameIndex)
@@ -73,7 +79,7 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 10
                 return
             }
         }
-        guard frameIndex >= images.count else { return }
+        guard frameIndex >= count else { return }
         input.markAsFinished()
         writer.finishWriting {
             guard writer.error == nil else {

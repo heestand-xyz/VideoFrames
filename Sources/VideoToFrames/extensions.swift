@@ -24,21 +24,16 @@ extension URL: ExpressibleByArgument {
     }
 }
 
+
 extension String {
     public func zfill(_ length: Int) -> String {
         let diff = (length - count)
         let prefix = (diff > 0 ? String(repeating: "0", count: diff) : "")
-
         return (prefix + self)
     }
-}
-
-extension NSBitmapImageRep {
-    var png: Data? { representation(using: .png, properties: [:]) }
-}
-extension Data {
-    var bitmap: NSBitmapImageRep? { NSBitmapImageRep(data: self) }
-}
-extension NSImage {
-    var png: Data? { tiffRepresentation?.bitmap?.png }
+    public func sfill(_ length: Int) -> String {
+        let diff = (length - count)
+        let prefix = (diff > 0 ? String(repeating: " ", count: diff) : "")
+        return (prefix + self)
+    }
 }
