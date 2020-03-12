@@ -22,14 +22,17 @@ struct VideoInfo {
     let fps: Int
     let size: CGSize
     var frameCount: Int { Int(duration * Double(fps)) }
-    init(asset: AVAsset) throws {
+    init(asset: AVAsset, roundFps: Bool = false) throws {
         guard let track: AVAssetTrack = asset.tracks(withMediaType: .video).first else {
             throw VideoFramesError.videoInfo("Video asset track not found.")
         }
         duration = CMTimeGetSeconds(asset.duration)
-        let rawFps: Float = track.nominalFrameRate
+        var rawFps: Float = track.nominalFrameRate
+        if roundFps {
+            rawFps = round(rawFps)
+        }
         guard Float(Int(rawFps)) == rawFps else {
-            throw VideoFramesError.videoInfo("Decimal FPS not supported.")
+            throw VideoFramesError.videoInfo("Decimal FPS not supported. Use --force flag to round fps.")
         }
         fps = Int(rawFps)
         size = track.naturalSize

@@ -51,6 +51,9 @@ struct VideoToFrames: ParsableCommand {
     @Option()
     var quality: Double?
     
+    @Flag()
+    var force: Bool
+    
     func run() throws {
         
         let startDate = Date()
@@ -78,7 +81,7 @@ struct VideoToFrames: ParsableCommand {
             throw VideoToFramesError.unsupportedImageFormat
         }
         
-        try convertVideoToFramesSync(from: video, frame: { image, index, count in
+        try convertVideoToFramesSync(from: video, force: force, frame: { image, index, count in
             logBar(at: index, count: count, from: startDate)
             let name: String = "\(videoName)_\("\(index)".zfill(6)).\(imageFormat.ext)"
             let url: URL = self.folder.appendingPathComponent(name)

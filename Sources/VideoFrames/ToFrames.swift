@@ -6,9 +6,9 @@ import UIKit
 #endif
 import AVFoundation
 
-public func convertVideoToFrames(from url: URL) throws -> [_Image] {
+public func convertVideoToFrames(from url: URL, force: Bool = false) throws -> [_Image] {
     var frames: [_Image] = []
-    let asset = try makeAsset(from: url)
+    let asset = try makeAsset(from: url, force: force)
     for i in 0..<asset.info.frameCount {
         let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
         frames.append(image)
@@ -16,8 +16,8 @@ public func convertVideoToFrames(from url: URL) throws -> [_Image] {
     return frames
 }
 
-public func convertVideoToFramesSync(from url: URL, frame: (_Image, Int, Int) throws -> ()) throws {
-    let asset = try makeAsset(from: url)
+public func convertVideoToFramesSync(from url: URL, force: Bool = false, frame: (_Image, Int, Int) throws -> ()) throws {
+    let asset = try makeAsset(from: url, force: force)
     let count: Int = asset.info.frameCount
     for i in 0..<count {
         let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
@@ -50,12 +50,12 @@ public func convertVideoToFramesSync(from url: URL, frame: (_Image, Int, Int) th
 //    }
 //}
 
-func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
+func makeAsset(from url: URL, force: Bool = false) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
     guard FileManager.default.fileExists(atPath: url.path) else {
         throw VideoFramesError.videoNotFound
     }
     let asset: AVAsset = AVAsset(url: url)
-    let info: VideoInfo = try VideoInfo(asset: asset)
+    let info: VideoInfo = try VideoInfo(asset: asset, roundFps: force)
     let generator: AVAssetImageGenerator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
     generator.requestedTimeToleranceBefore = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
