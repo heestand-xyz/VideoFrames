@@ -76,11 +76,11 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "~/Code/Frameworks/Development/VideoFrames/Resources/Count"
+            argument = "~/Desktop/apple_airpods_pro_cut"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "~/Code/Frameworks/Development/VideoFrames/Resources/Count.mov"
+            argument = "~/Desktop/apple_airpods_pro_cut.mov"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

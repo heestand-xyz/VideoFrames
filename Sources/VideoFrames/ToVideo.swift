@@ -105,9 +105,9 @@ func getPixelBuffer(from image: _Image) throws -> CVPixelBuffer {
 }
 
 func getPixelBuffer(from cgImage: CGImage) throws -> CVPixelBuffer {
-    let osBits: OSType = kCVPixelFormatType_32BGRA
+    let osBits: OSType = kCVPixelFormatType_32ARGB
     let bitCount: Int = 8
-    let colorSpace: CGColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let colorSpace: CGColorSpace = cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!
     var maybePixelBuffer: CVPixelBuffer?
     let attrs: [CFString: Any] = [
         kCVPixelBufferPixelFormatTypeKey: Int(osBits) as CFNumber,
@@ -135,7 +135,7 @@ func getPixelBuffer(from cgImage: CGImage) throws -> CVPixelBuffer {
                                   bitsPerComponent: bitCount,
                                   bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
                                   space: colorSpace,
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue) else {
         throw VideoFramesError.framePixelBuffer("Context failed to be created.")
     }
     context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
