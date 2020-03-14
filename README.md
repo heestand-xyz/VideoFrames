@@ -8,9 +8,9 @@ Convert between Video and Image Frames
 .package(url: "https://github.com/hexagons/VideoFrames.git", from: "0.1.0")
 ~~~~
 
-To use the command line tools add [VideoToFrames](https://github.com/hexagons/pixtools/raw/master/VideoToFrames) or [FramesToVideo](https://github.com/hexagons/pixtools/raw/master/FramesToVideo) to `/usr/local/bin/`
-
 ## Example
+
+To use the command line tools add [VideoToFrames](https://github.com/hexagons/VideoFrames/raw/master/VideoToFrames) or [FramesToVideo](https://github.com/hexagons/VideoFrames/raw/master/FramesToVideo) to `/usr/local/bin/`
 
 ~~~
 $ VideoToFrames ~/Desktop/video.mov ~/Desktop/video_frames/ --format jpg --quality 0.8 
