@@ -16,7 +16,81 @@ public func convertVideoToFrames(from url: URL, force: Bool = false) throws -> [
     return frames
 }
 
-public func convertVideoToFramesSync(from url: URL, force: Bool = false, frame: (_Image, Int, Int) throws -> ()) throws {
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
+public func convertVideoToFrames(from url: URL, force: Bool = false) async throws -> [_Image] {
+    var frames: [_Image] = []
+    let asset = try makeAsset(from: url, force: force)
+    for i in 0..<asset.info.frameCount {
+        let frame: _Image = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global().async {
+                do {
+                    let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+                    DispatchQueue.main.async {
+                        continuation.resume(returning: image)
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        }
+        frames.append(frame)
+    }
+    return frames
+}
+
+//@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
+//public func convertVideoToFrames(from url: URL, force: Bool = false) async throws -> [_Image] {
+//
+//    let asset = try makeAsset(from: url, force: force)
+//
+//    return try await withThrowingTaskGroup(of: (Int, _Image).self) { group in
+//
+//        for index in 0..<asset.info.frameCount {
+//
+//            group.addTask {
+//
+//                let image: _Image = try await withCheckedThrowingContinuation { continuation in
+//
+//                    DispatchQueue.global(qos: .background).async {
+//
+//                        do {
+//
+//                            let image = try getFrame(at: index, info: asset.info, with: asset.generator)
+//
+//                            DispatchQueue.main.async {
+//                                continuation.resume(returning: image)
+//                            }
+//
+//                        } catch {
+//
+//                            DispatchQueue.main.async {
+//                                continuation.resume(throwing: error)
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                return (index, image)
+//            }
+//        }
+//
+//        var images: [(Int, _Image)] = []
+//
+//        for try await (index, image) in group {
+//            images.append((index, image))
+//        }
+//
+//        return images
+//            .sorted(by: { leadingPack, trailingPack in
+//                leadingPack.0 < trailingPack.0
+//            })
+//            .map(\.1)
+//    }
+//}
+
+public func convertVideoToFramesWithWithHandlerSync(from url: URL, force: Bool = false, frame: (_Image, Int, Int) throws -> ()) throws {
     let asset = try makeAsset(from: url, force: force)
     let count: Int = asset.info.frameCount
     for i in 0..<count {
@@ -25,30 +99,32 @@ public func convertVideoToFramesSync(from url: URL, force: Bool = false, frame: 
     }
 }
 
-//public func convertVideoToFramesAsync(from url: URL, on queue: DispatchQueue = .main, frame: @escaping (_Image, Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
-//    let asset = try makeAsset(from: url)
-//    var sum: Int = 0
-//    var cancel: Bool = false
-//    for i in 0..<asset.info.frameCount {
-//        DispatchQueue.global().async {
-//            guard !cancel else { return }
-//            do {
-//                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
-//                queue.async {
-//                    guard !cancel else { return }
-//                    frame(image, i)
-//                    sum += 1
-//                    if sum == asset.info.frameCount {
-//                        completion(.success(()))
-//                    }
-//                }
-//            } catch {
-//                cancel = true
-//                completion(.failure(error))
-//            }
-//        }
-//    }
-//}
+public func convertVideoToFramesWithHandlerAsync(from url: URL, force: Bool = false, frame: @escaping (_Image, Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+    let asset = try makeAsset(from: url, force: force)
+    var sum: Int = 0
+    var cancel: Bool = false
+    for i in 0..<asset.info.frameCount {
+        DispatchQueue.global().async {
+            guard !cancel else { return }
+            do {
+                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+                DispatchQueue.main.async {
+                    guard !cancel else { return }
+                    frame(image, i)
+                    sum += 1
+                    if sum == asset.info.frameCount {
+                        completion(.success(()))
+                    }
+                }
+            } catch {
+                cancel = true
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+}
 
 func makeAsset(from url: URL, force: Bool = false) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
     guard FileManager.default.fileExists(atPath: url.path) else {
