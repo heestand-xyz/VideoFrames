@@ -12,6 +12,37 @@ public enum VideoFormat: String, CaseIterable {
     }
 }
 
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
+public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: ((Int) -> ())? = nil) async throws {
+    
+    let _: Bool = try await withCheckedThrowingContinuation { continuation in
+    
+        DispatchQueue.global(qos: .background).async {
+            
+            do {
+                try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: { index in
+                    frame?(index)
+                }, completion: { result in
+                    
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success:
+                            continuation.resume(returning: true)
+                        case .failure(let error):
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                })
+            } catch {
+                
+                DispatchQueue.main.async {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+}
+
 public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
     try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: frame, completion: completion)
 }
@@ -67,7 +98,6 @@ public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_
     input.requestMediaDataWhenReady(on: queue, using: {
         while input.isReadyForMoreMediaData && frameIndex < count {
             let time: CMTime = CMTimeMake(value: Int64(frameIndex), timescale: Int32(fps))
-//            print("TIME", frameIndex, "-->", time.seconds * Double(fps))
             do {
                 let image: _Image = frameIndex > 0 ? try image(frameIndex) : imageZero
                 let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: image)
