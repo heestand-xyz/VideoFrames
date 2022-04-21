@@ -20,7 +20,7 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_
         DispatchQueue.global(qos: .background).async {
             
             do {
-                try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: { index in
+                try convertFramesToVideo(count: images.count, image: { images[$0] }, fps: fps, kbps: kbps, as: format, url: url, frame: { index in
                     frame?(index)
                 }, completion: { result in
                     
