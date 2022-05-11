@@ -4,7 +4,7 @@ import AVFoundation
 public enum VideoFormat: String, CaseIterable {
     case mov
     case mp4
-    var fileType: AVFileType {
+    public var fileType: AVFileType {
         switch self {
         case .mov: return .mov
         case .mp4: return .mp4
