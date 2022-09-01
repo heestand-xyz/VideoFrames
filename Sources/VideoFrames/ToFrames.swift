@@ -44,6 +44,25 @@ public func convertVideoToFrames(from url: URL,
     return frames
 }
 
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
+public func convertVideoToFrames(from url: URL) throws -> AsyncThrowingStream<_Image, Error> {
+    let asset = try makeAsset(from: url)
+    let frameCount = asset.info.frameCount
+    return AsyncThrowingStream { stream in
+        DispatchQueue.global().async {
+            for index in 0..<frameCount {
+                do {
+                    let image: _Image = try getFrame(at: index, info: asset.info, with: asset.generator)
+                    stream.yield(image)
+                } catch {
+                    stream.finish(throwing: error)
+                }
+            }
+            stream.finish()
+        }
+    }
+}
+
 //@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 //public func convertVideoToFrames(from url: URL) async throws -> [_Image] {
 //

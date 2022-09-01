@@ -17,11 +17,15 @@ public enum VideoFramesError: Error {
     case videoInfo(String)
 }
 
-struct VideoInfo {
-    let duration: Double
-    let fps: Double
-    let size: CGSize
-    var frameCount: Int { Int(duration * fps) }
+public struct VideoInfo {
+    public let duration: Double
+    public let fps: Double
+    public let size: CGSize
+    public var frameCount: Int { Int(duration * fps) }
+    public init(url: URL) throws {
+        let asset = AVAsset(url: url)
+        try self.init(asset: asset)
+    }
     init(asset: AVAsset) throws {
         guard let track: AVAssetTrack = asset.tracks(withMediaType: .video).first else {
             throw VideoFramesError.videoInfo("Video asset track not found.")
