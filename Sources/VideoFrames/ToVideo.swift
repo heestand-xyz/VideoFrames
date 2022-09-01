@@ -13,7 +13,7 @@ public enum VideoFormat: String, CaseIterable {
 }
 
 @available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
-public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: ((Int) -> ())? = nil) async throws {
+public func convertFramesToVideo(images: [_Image], fps: Double = 30.0, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: ((Int) -> ())? = nil) async throws {
     
     let _: Bool = try await withCheckedThrowingContinuation { continuation in
     
@@ -43,11 +43,11 @@ public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_
     }
 }
 
-public func convertFramesToVideo(images: [_Image], fps: Int = 30, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+public func convertFramesToVideo(images: [_Image], fps: Double = 30.0, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
     try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: frame, completion: completion)
 }
 
-public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_Image), fps: Int = 30, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_Image), fps: Double = 30.0, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
     precondition(count > 0)
     precondition(fps > 0)
     precondition(kbps > 0)
@@ -64,7 +64,7 @@ public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_
     // FPS (29,7 / 99) * 100 == 30
     
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
-        AVVideoCodecKey: AVVideoCodecH264,
+        AVVideoCodecKey: AVVideoCodecType.h264,
         AVVideoWidthKey: size.width,
         AVVideoHeightKey: size.height,
         AVVideoCompressionPropertiesKey: [
@@ -97,7 +97,8 @@ public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_
 
     input.requestMediaDataWhenReady(on: queue, using: {
         while input.isReadyForMoreMediaData && frameIndex < count {
-            let time: CMTime = CMTimeMake(value: Int64(frameIndex), timescale: Int32(fps))
+            let time: CMTime = CMTimeMake(value: Int64(frameIndex * 1_000),
+                                          timescale: Int32(fps * 1_000))
             do {
                 let image: _Image = frameIndex > 0 ? try image(frameIndex) : imageZero
                 let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: image)

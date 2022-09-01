@@ -17,10 +17,14 @@ public func convertVideoToFrames(from url: URL) throws -> [_Image] {
 }
 
 @available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
-public func convertVideoToFrames(from url: URL) async throws -> [_Image] {
+public func convertVideoToFrames(from url: URL,
+                                 frameCount: ((Int) -> ())? = nil,
+                                 progress: ((Int) -> ())? = nil) async throws -> [_Image] {
     var frames: [_Image] = []
     let asset = try makeAsset(from: url)
+    frameCount?(asset.info.frameCount)
     for i in 0..<asset.info.frameCount {
+        progress?(i)
         let frame: _Image = try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global().async {
                 do {
@@ -140,10 +144,9 @@ func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImag
 }
 
 func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) throws -> _Image {
-    let time: CMTime = CMTime(value: CMTimeValue(frameIndex), timescale: CMTimeScale(info.fps))
-    var actualTime: CMTime = CMTime(value: -1, timescale: 1)
-    let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: &actualTime)
-//    print("TIME", frameIndex, "-->", time.seconds * Double(info.fps),  "-->", actualTime.seconds * Double(info.fps))
+    let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000),
+                              timescale: CMTimeScale(info.fps * 1_000))
+    let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: nil)
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
     #else

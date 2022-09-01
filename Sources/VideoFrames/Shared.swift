@@ -19,19 +19,15 @@ public enum VideoFramesError: Error {
 
 struct VideoInfo {
     let duration: Double
-    let fps: Int
+    let fps: Double
     let size: CGSize
-    var frameCount: Int { Int(duration * Double(fps)) }
+    var frameCount: Int { Int(duration * fps) }
     init(asset: AVAsset) throws {
         guard let track: AVAssetTrack = asset.tracks(withMediaType: .video).first else {
             throw VideoFramesError.videoInfo("Video asset track not found.")
         }
         duration = CMTimeGetSeconds(asset.duration)
-        let rawFps: Float = track.nominalFrameRate
-        if Float(Int(rawFps)) != rawFps {
-            print("VideoFrames - Decimal FPS not supported. FPS will be rounded.")
-        }
-        fps = Int(round(rawFps))
+        fps = Double(track.nominalFrameRate)
         size = track.naturalSize
     }
 }
