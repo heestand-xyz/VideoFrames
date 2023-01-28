@@ -47,7 +47,7 @@ public func convertFramesToVideo(images: [_Image], fps: Double = 30.0, kbps: Int
     try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: frame, completion: completion)
 }
 
-public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_Image), fps: Double = 30.0, kbps: Int = 100, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_Image), fps: Double = 30.0, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
     precondition(count > 0)
     precondition(fps > 0)
     precondition(kbps > 0)
@@ -58,7 +58,7 @@ public func convertFramesToVideo(count: Int, image: @escaping (Int) throws -> (_
     
     let writer = try AVAssetWriter(url: url, fileType: format.fileType)
 
-    let bps: Int = kbps * 1_000 * 8
+    let bps: Int = kbps * 1_000
     
     // FPS (29,97 / 999) * 1000 == 30
     // FPS (29,7 / 99) * 100 == 30
