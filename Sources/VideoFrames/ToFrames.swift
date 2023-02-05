@@ -101,12 +101,12 @@ public func convertVideoToFramesWithHandlerAsync(from url: URL, frame: @escaping
 
 // MARK: - Asset
 
-func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
+func makeAsset(from url: URL, info: VideoInfo? = nil) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
     guard FileManager.default.fileExists(atPath: url.path) else {
         throw VideoFramesError.videoNotFound
     }
     let asset: AVAsset = AVAsset(url: url)
-    let info: VideoInfo = try VideoInfo(asset: asset)
+    let info: VideoInfo = try info ?? VideoInfo(asset: asset)
     let generator: AVAssetImageGenerator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
     generator.requestedTimeToleranceBefore = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
@@ -117,19 +117,19 @@ func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImag
 // MARK: - Frame
 
 enum VideoFrameError: LocalizedError {
-    case videoFrameIndexOutOfBounds(frameIndex: Int, frameCount: Int)
+    case videoFrameIndexOutOfBounds(frameIndex: Int, frameCount: Int, frameRate: Double)
     var errorDescription: String? {
         switch self {
-        case .videoFrameIndexOutOfBounds(let frameIndex, let frameCount):
-            return "Video Frames - Video Frame Index Out of Range (Frame Index: \(frameIndex), Frame Count: \(frameCount))"
+        case .videoFrameIndexOutOfBounds(let frameIndex, let frameCount, let frameRate):
+            return "Video Frames - Video Frame Index Out of Range (Frame Index: \(frameIndex), Frame Count: \(frameCount), Frame Rate: \(frameRate))"
         }
     }
 }
 
-public func videoFrame(at frameIndex: Int, from url: URL) throws -> _Image {
-    let asset = try makeAsset(from: url)
+public func videoFrame(at frameIndex: Int, from url: URL, info: VideoInfo? = nil) throws -> _Image {
+    let asset = try makeAsset(from: url, info: info)
     guard frameIndex >= 0 && frameIndex < asset.info.frameCount
-    else { throw VideoFrameError.videoFrameIndexOutOfBounds(frameIndex: frameIndex, frameCount: asset.info.frameCount) }
+    else { throw VideoFrameError.videoFrameIndexOutOfBounds(frameIndex: frameIndex, frameCount: asset.info.frameCount, frameRate: asset.info.fps) }
     return try getFrame(at: frameIndex, info: asset.info, with: asset.generator)
 }
 
