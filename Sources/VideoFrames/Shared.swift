@@ -21,7 +21,7 @@ public struct VideoInfo {
     public let duration: Double
     public let fps: Double
     public let size: CGSize
-    public var frameCount: Int { Int(duration * fps) }
+    public var frameCount: Int { Int(round(duration * fps)) }
     public init(url: URL) throws {
         let asset = AVAsset(url: url)
         try self.init(asset: asset)

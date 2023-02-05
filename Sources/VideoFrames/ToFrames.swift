@@ -117,11 +117,11 @@ func makeAsset(from url: URL) throws -> (info: VideoInfo, generator: AVAssetImag
 // MARK: - Frame
 
 enum VideoFrameError: LocalizedError {
-    case videoFrameIndexOutOfBounds(count: Int)
+    case videoFrameIndexOutOfBounds(frameIndex: Int, frameCount: Int)
     var errorDescription: String? {
         switch self {
-        case .videoFrameIndexOutOfBounds(let count):
-            return "Video Frames - Video Frame Index Out of Range (Count: \(count))"
+        case .videoFrameIndexOutOfBounds(let frameIndex, let frameCount):
+            return "Video Frames - Video Frame Index Out of Range (Frame Index: \(frameIndex), Frame Count: \(frameCount))"
         }
     }
 }
@@ -129,13 +129,13 @@ enum VideoFrameError: LocalizedError {
 public func videoFrame(at frameIndex: Int, from url: URL) throws -> _Image {
     let asset = try makeAsset(from: url)
     guard frameIndex >= 0 && frameIndex < asset.info.frameCount
-    else { throw VideoFrameError.videoFrameIndexOutOfBounds(count: asset.info.frameCount) }
+    else { throw VideoFrameError.videoFrameIndexOutOfBounds(frameIndex: frameIndex, frameCount: asset.info.frameCount) }
     return try getFrame(at: frameIndex, info: asset.info, with: asset.generator)
 }
 
 func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) throws -> _Image {
-    let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000),
-                              timescale: CMTimeScale(info.fps * 1_000))
+    let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000_000),
+                              timescale: CMTimeScale(info.fps * 1_000_000))
     let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: nil)
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
