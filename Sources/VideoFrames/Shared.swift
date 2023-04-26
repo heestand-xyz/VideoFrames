@@ -24,7 +24,7 @@ public struct VideoInfo {
     public var frameCount: Int { Int(duration * fps) }
     public init(duration: Double, fps: Double, size: CGSize) {
         self.duration = duration
-        self.fps = fps
+        self.fps = min(fps, 240)
         self.size = size
     }
     public init(url: URL) throws {
