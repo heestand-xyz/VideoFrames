@@ -1,13 +1,13 @@
-// swift-tools-version:5.1
+// swift-tools-version: 5.5
 
 import PackageDescription
 
 let package = Package(
     name: "VideoFrames",
     platforms: [
-        .iOS(.v13),
-        .tvOS(.v13),
-        .macOS(.v10_15),
+        .iOS(.v15),
+        .tvOS(.v15),
+        .macOS(.v12),
     ],
     products: [
         .library(name: "VideoFrames", targets: ["VideoFrames"]),
