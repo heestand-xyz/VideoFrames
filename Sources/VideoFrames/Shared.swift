@@ -27,17 +27,17 @@ public struct VideoInfo {
         self.fps = min(fps, 240)
         self.size = size
     }
-    public init(url: URL) throws {
+    public init(url: URL) async throws {
         let asset = AVAsset(url: url)
-        try self.init(asset: asset)
+        try await self.init(asset: asset)
     }
-    init(asset: AVAsset) throws {
-        guard let track: AVAssetTrack = asset.tracks(withMediaType: .video).first else {
+    init(asset: AVAsset) async throws {
+        guard let track: AVAssetTrack = try await asset.load(.tracks).first else {
             throw VideoFramesError.videoInfo("Video asset track not found.")
         }
-        duration = CMTimeGetSeconds(asset.duration)
-        fps = Double(track.nominalFrameRate)
-        size = track.naturalSize
+        duration = try await CMTimeGetSeconds(asset.load(.duration))
+        fps = try await Double(track.load(.nominalFrameRate))
+        size = try await track.load(.naturalSize)
     }
 }
 

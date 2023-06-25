@@ -1,3 +1,5 @@
+#if !os(xrOS)
+
 import Foundation
 #if os(macOS)
 import Cocoa
@@ -6,9 +8,9 @@ import UIKit
 #endif
 import AVFoundation
 
-public func convertVideoToFrames(from url: URL) throws -> [_Image] {
+public func convertVideoToFrames(from url: URL) async throws -> [_Image] {
     var frames: [_Image] = []
-    let asset = try makeAsset(from: url)
+    let asset = try await makeAsset(from: url)
     for i in 0..<asset.info.frameCount {
         let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
         frames.append(image)
@@ -21,7 +23,7 @@ public func convertVideoToFrames(from url: URL,
                                  frameCount: ((Int) -> ())? = nil,
                                  progress: ((Int) -> ())? = nil) async throws -> [_Image] {
     var frames: [_Image] = []
-    let asset = try makeAsset(from: url)
+    let asset = try await makeAsset(from: url)
     frameCount?(asset.info.frameCount)
     for i in 0..<asset.info.frameCount {
         progress?(i)
@@ -45,8 +47,8 @@ public func convertVideoToFrames(from url: URL,
 }
 
 @available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
-public func convertVideoToFrames(from url: URL, info: VideoInfo? = nil) throws -> AsyncThrowingStream<_Image, Error> {
-    let asset = try makeAsset(from: url, info: info)
+public func convertVideoToFrames(from url: URL, info: VideoInfo? = nil) async throws -> AsyncThrowingStream<_Image, Error> {
+    let asset = try await makeAsset(from: url, info: info)
     let frameCount = asset.info.frameCount
     return AsyncThrowingStream { stream in
         DispatchQueue.global().async {
@@ -64,8 +66,8 @@ public func convertVideoToFrames(from url: URL, info: VideoInfo? = nil) throws -
     }
 }
 
-public func convertVideoToFramesWithWithHandlerSync(from url: URL, frame: (_Image, Int, Int) throws -> ()) throws {
-    let asset = try makeAsset(from: url)
+public func convertVideoToFramesWithWithHandlerSync(from url: URL, frame: (_Image, Int, Int) throws -> ()) async throws {
+    let asset = try await makeAsset(from: url)
     let count: Int = asset.info.frameCount
     for i in 0..<count {
         let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
@@ -73,46 +75,51 @@ public func convertVideoToFramesWithWithHandlerSync(from url: URL, frame: (_Imag
     }
 }
 
-public func convertVideoToFramesWithHandlerAsync(from url: URL, frame: @escaping (_Image, Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
-    let asset = try makeAsset(from: url)
-    var sum: Int = 0
-    var cancel: Bool = false
-    for i in 0..<asset.info.frameCount {
-        DispatchQueue.global().async {
-            guard !cancel else { return }
-            do {
-                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
-                DispatchQueue.main.async {
-                    guard !cancel else { return }
-                    frame(image, i)
-                    sum += 1
-                    if sum == asset.info.frameCount {
-                        completion(.success(()))
-                    }
-                }
-            } catch {
-                cancel = true
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-            }
-        }
-    }
-}
+//public func convertVideoToFramesWithHandlerAsync(from url: URL, frame: @escaping (_Image, Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
+//    let asset = try makeAsset(from: url)
+//    var sum: Int = 0
+//    var cancel: Bool = false
+//    for i in 0..<asset.info.frameCount {
+//        DispatchQueue.global().async {
+//            guard !cancel else { return }
+//            do {
+//                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+//                DispatchQueue.main.async {
+//                    guard !cancel else { return }
+//                    frame(image, i)
+//                    sum += 1
+//                    if sum == asset.info.frameCount {
+//                        completion(.success(()))
+//                    }
+//                }
+//            } catch {
+//                cancel = true
+//                DispatchQueue.main.async {
+//                    completion(.failure(error))
+//                }
+//            }
+//        }
+//    }
+//}
 
 // MARK: - Asset
 
-func makeAsset(from url: URL, info: VideoInfo? = nil) throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
+func makeAsset(from url: URL, info: VideoInfo? = nil) async throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
     guard FileManager.default.fileExists(atPath: url.path) else {
         throw VideoFramesError.videoNotFound
     }
     let asset: AVAsset = AVAsset(url: url)
-    let info: VideoInfo = try info ?? VideoInfo(asset: asset)
+    let videoInfo: VideoInfo
+    if let info {
+        videoInfo = info
+    } else {
+        videoInfo = try await VideoInfo(asset: asset)
+    }
     let generator: AVAssetImageGenerator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
-    generator.requestedTimeToleranceBefore = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
-    generator.requestedTimeToleranceAfter = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(info.fps))
-    return (info, generator)
+    generator.requestedTimeToleranceBefore = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(videoInfo.fps))
+    generator.requestedTimeToleranceAfter = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(videoInfo.fps))
+    return (videoInfo, generator)
 }
 
 // MARK: - Frame
@@ -127,8 +134,8 @@ enum VideoFrameError: LocalizedError {
     }
 }
 
-public func videoFrame(at frameIndex: Int, from url: URL, info: VideoInfo? = nil) throws -> _Image {
-    let asset = try makeAsset(from: url, info: info)
+public func videoFrame(at frameIndex: Int, from url: URL, info: VideoInfo? = nil) async throws -> _Image {
+    let asset = try await makeAsset(from: url, info: info)
     guard frameIndex >= 0 && frameIndex < asset.info.frameCount
     else { throw VideoFrameError.videoFrameIndexOutOfBounds(frameIndex: frameIndex, frameCount: asset.info.frameCount, frameRate: asset.info.fps) }
     return try getFrame(at: frameIndex, info: asset.info, with: asset.generator)
@@ -145,3 +152,5 @@ func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageG
     #endif
     return image
 }
+
+#endif
