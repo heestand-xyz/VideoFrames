@@ -22,8 +22,15 @@ public enum VideoCodec: String, CaseIterable {
     case proRes
     public var codec: AVVideoCodecType {
         switch self {
-        case .h264: return .h264
-        case .proRes: return .proRes4444
+        case .h264: 
+            return .h264
+        case .proRes:
+            #if os(xrOS)
+            print("VideoFrames - Warning: ProRes is not supported in visionOS. Will fallback to h264.")
+            return .h264
+            #else
+            return .proRes4444
+            #endif
         }
     }
 }
@@ -166,12 +173,12 @@ public func convertFramesToVideo(
 }
 
 func getPixelBuffer(from image: _Image) throws -> CVPixelBuffer {
-    #if os(iOS) || os(tvOS)
-    guard let cgImage: CGImage = image.cgImage else {
+    #if os(macOS)
+    guard let cgImage: CGImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
         throw VideoFramesError.framePixelBuffer("CGImage Not Found")
     }
-    #elseif os(macOS)
-    guard let cgImage: CGImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+    #else
+    guard let cgImage: CGImage = image.cgImage else {
         throw VideoFramesError.framePixelBuffer("CGImage Not Found")
     }
     #endif
