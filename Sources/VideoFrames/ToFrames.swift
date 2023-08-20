@@ -129,7 +129,17 @@ public func videoFrame(at frameIndex: Int, from url: URL, info: VideoInfo? = nil
 func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) async throws -> _Image {
     let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000_000),
                               timescale: CMTimeScale(info.fps * 1_000_000))
-    let (cgImage, _): (CGImage, CMTime) = try await generator.image(at: time)
+    let cgImage: CGImage
+    if #available(iOS 16, macOS 13, visionOS 1.0, *) {
+        let (image, _): (CGImage, CMTime) = try await generator.image(at: time)
+        cgImage = image
+    } else {
+        #if os(visionOS)
+        fatalError()
+        #else
+        cgImage = try generator.copyCGImage(at: time, actualTime: nil)
+        #endif
+    }
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
     #else

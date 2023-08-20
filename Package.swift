@@ -5,9 +5,9 @@ import PackageDescription
 let package = Package(
     name: "VideoFrames",
     platforms: [
-        .iOS(.v16),
-        .tvOS(.v16),
-        .macOS(.v13),
+        .iOS(.v15),
+        .tvOS(.v15),
+        .macOS(.v12),
         .visionOS(.v1)
     ],
     products: [
