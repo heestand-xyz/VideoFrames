@@ -1,5 +1,3 @@
-#if !os(xrOS)
-
 import Foundation
 #if os(macOS)
 import Cocoa
@@ -12,7 +10,7 @@ public func convertVideoToFrames(from url: URL) async throws -> [_Image] {
     var frames: [_Image] = []
     let asset = try await makeAsset(from: url)
     for i in 0..<asset.info.frameCount {
-        let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+        let image: _Image = try await getFrame(at: i, info: asset.info, with: asset.generator)
         frames.append(image)
     }
     return frames
@@ -27,21 +25,8 @@ public func convertVideoToFrames(from url: URL,
     frameCount?(asset.info.frameCount)
     for i in 0..<asset.info.frameCount {
         progress?(i)
-        let frame: _Image = try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global().async {
-                do {
-                    let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
-                    DispatchQueue.main.async {
-                        continuation.resume(returning: image)
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        continuation.resume(throwing: error)
-                    }
-                }
-            }
-        }
-        frames.append(frame)
+        let image: _Image = try await getFrame(at: i, info: asset.info, with: asset.generator)
+        frames.append(image)
     }
     return frames
 }
@@ -51,10 +36,10 @@ public func convertVideoToFrames(from url: URL, info: VideoInfo? = nil) async th
     let asset = try await makeAsset(from: url, info: info)
     let frameCount = asset.info.frameCount
     return AsyncThrowingStream { stream in
-        DispatchQueue.global().async {
+        Task {
             for index in 0..<frameCount {
                 do {
-                    let image: _Image = try getFrame(at: index, info: asset.info, with: asset.generator)
+                    let image: _Image = try await getFrame(at: index, info: asset.info, with: asset.generator)
                     stream.yield(image)
                 } catch {
                     stream.finish(throwing: error)
@@ -70,7 +55,7 @@ public func convertVideoToFramesWithWithHandlerSync(from url: URL, frame: (_Imag
     let asset = try await makeAsset(from: url)
     let count: Int = asset.info.frameCount
     for i in 0..<count {
-        let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
+        let image: _Image = try await getFrame(at: i, info: asset.info, with: asset.generator)
         try frame(image, i, count)
     }
 }
@@ -138,13 +123,13 @@ public func videoFrame(at frameIndex: Int, from url: URL, info: VideoInfo? = nil
     let asset = try await makeAsset(from: url, info: info)
     guard frameIndex >= 0 && frameIndex < asset.info.frameCount
     else { throw VideoFrameError.videoFrameIndexOutOfBounds(frameIndex: frameIndex, frameCount: asset.info.frameCount, frameRate: asset.info.fps) }
-    return try getFrame(at: frameIndex, info: asset.info, with: asset.generator)
+    return try await getFrame(at: frameIndex, info: asset.info, with: asset.generator)
 }
 
-func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) throws -> _Image {
+func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) async throws -> _Image {
     let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000_000),
                               timescale: CMTimeScale(info.fps * 1_000_000))
-    let cgImage: CGImage = try generator.copyCGImage(at: time, actualTime: nil)
+    let (cgImage, _): (CGImage, CMTime) = try await generator.image(at: time)
     #if os(macOS)
     let image: NSImage = NSImage(cgImage: cgImage, size: info.size)
     #else
@@ -152,5 +137,3 @@ func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageG
     #endif
     return image
 }
-
-#endif
