@@ -16,7 +16,6 @@ public func convertVideoToFrames(from url: URL) async throws -> [_Image] {
     return frames
 }
 
-@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 public func convertVideoToFrames(from url: URL,
                                  frameCount: ((Int) -> ())? = nil,
                                  progress: ((Int) -> ())? = nil) async throws -> [_Image] {
@@ -31,7 +30,6 @@ public func convertVideoToFrames(from url: URL,
     return frames
 }
 
-@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 public func convertVideoToFrames(from url: URL, info: VideoInfo? = nil) async throws -> AsyncThrowingStream<_Image, Error> {
     let asset = try await makeAsset(from: url, info: info)
     let frameCount = asset.info.frameCount
@@ -60,36 +58,9 @@ public func convertVideoToFramesWithWithHandlerSync(from url: URL, frame: (_Imag
     }
 }
 
-//public func convertVideoToFramesWithHandlerAsync(from url: URL, frame: @escaping (_Image, Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
-//    let asset = try makeAsset(from: url)
-//    var sum: Int = 0
-//    var cancel: Bool = false
-//    for i in 0..<asset.info.frameCount {
-//        DispatchQueue.global().async {
-//            guard !cancel else { return }
-//            do {
-//                let image: _Image = try getFrame(at: i, info: asset.info, with: asset.generator)
-//                DispatchQueue.main.async {
-//                    guard !cancel else { return }
-//                    frame(image, i)
-//                    sum += 1
-//                    if sum == asset.info.frameCount {
-//                        completion(.success(()))
-//                    }
-//                }
-//            } catch {
-//                cancel = true
-//                DispatchQueue.main.async {
-//                    completion(.failure(error))
-//                }
-//            }
-//        }
-//    }
-//}
-
 // MARK: - Asset
 
-func makeAsset(from url: URL, info: VideoInfo? = nil) async throws -> (info: VideoInfo, generator: AVAssetImageGenerator) {
+func makeAsset(from url: URL, info: VideoInfo? = nil) async throws -> Asset {
     guard FileManager.default.fileExists(atPath: url.path) else {
         throw VideoFramesError.videoNotFound
     }
@@ -104,7 +75,7 @@ func makeAsset(from url: URL, info: VideoInfo? = nil) async throws -> (info: Vid
     generator.appliesPreferredTrackTransform = true
     generator.requestedTimeToleranceBefore = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(videoInfo.fps))
     generator.requestedTimeToleranceAfter = .zero //CMTime(value: CMTimeValue(1), timescale: CMTimeScale(videoInfo.fps))
-    return (videoInfo, generator)
+    return Asset(info: videoInfo, generator: generator)
 }
 
 // MARK: - Frame

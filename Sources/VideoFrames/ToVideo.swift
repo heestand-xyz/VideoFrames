@@ -1,12 +1,25 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 #if os(macOS)
 import AppKit
 #else
 import UIKit
 #endif
 
-public enum VideoFormat: String, CaseIterable {
+public enum ToVideoError: String, LocalizedError {
+    case notReadyForMoreMediaData
+}
+
+extension ToVideoError {
+    public var errorDescription: String? {
+        switch self {
+        case .notReadyForMoreMediaData:
+            "Not ready for more media data."
+        }
+    }
+}
+
+public enum VideoFormat: String, CaseIterable, Sendable {
     case mov
     case mp4
     public var fileType: AVFileType {
@@ -17,7 +30,7 @@ public enum VideoFormat: String, CaseIterable {
     }
 }
 
-public enum VideoCodec: String, CaseIterable {
+public enum VideoCodec: String, CaseIterable, Sendable {
     case h264
     case proRes
     public var codec: AVVideoCodecType {
@@ -25,8 +38,8 @@ public enum VideoCodec: String, CaseIterable {
         case .h264: 
             return .h264
         case .proRes:
-            #if os(xrOS)
-            print("VideoFrames - Warning: ProRes is not supported in visionOS. Will fallback to h264.")
+            #if os(visionOS)
+            print("VideoFrames - Warning: ProRes is not supported on visionOS. Using h264.")
             return .h264
             #else
             return .proRes4444
@@ -35,76 +48,65 @@ public enum VideoCodec: String, CaseIterable {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 public func convertFramesToVideo(
     images: [_Image],
     fps: Double = 30.0,
-    kbps: Int = 1_000,
+    kbps: Int = 10_000,
     format: VideoFormat = .mov,
     codec: VideoCodec = .h264,
     url: URL,
-    frame: ((Int) -> ())? = nil
+    frame: (@Sendable (Int) -> ())? = nil
 ) async throws {
+    precondition(!images.isEmpty)
     
-    let _: Bool = try await withCheckedThrowingContinuation { continuation in
+    let firstImage: _Image = images.first!
+    let resolution: CGSize = firstImage.size
     
-        DispatchQueue.global(qos: .background).async {
-            
-            do {
-                try convertFramesToVideo(
-                    count: images.count,
-                    image: { images[$0] },
-                    fps: fps,
-                    kbps: kbps,
-                    format: format,
-                    codec: codec,
-                    url: url,
-                    frame: { index in
-                        frame?(index)
-                    }, completion: { result in
-                        
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success:
-                                continuation.resume(returning: true)
-                            case .failure(let error):
-                                continuation.resume(throwing: error)
-                            }
-                        }
-                    }
-                )
-            } catch {
-                
-                DispatchQueue.main.async {
-                    continuation.resume(throwing: error)
-                }
-            }
+    let videoFrames = images.map({ VideoFrame(image: $0) })
+    
+    final class ContinuationWrapper: @unchecked Sendable {
+        var continuation: AsyncStream<VideoFrame>.Continuation?
+    }
+
+    let continuation = ContinuationWrapper()
+    let stream = AsyncStream<VideoFrame> {
+        continuation.continuation = $0
+    }
+    
+    try await withThrowingTaskGroup(of: Void.self) { group in
+        group.addTask {
+            try await convertFramesToVideo(
+                stream: stream,
+                resolution: resolution,
+                fps: fps,
+                kbps: kbps,
+                format: format,
+                codec: codec,
+                url: url
+            )
         }
+        group.addTask {
+            for (index, videoFrame) in videoFrames.enumerated() {
+                frame?(index)
+                continuation.continuation?.yield(videoFrame)
+            }
+            continuation.continuation?.finish()
+        }
+        try await group.waitForAll()
     }
 }
 
-public func convertFramesToVideo(images: [_Image], fps: Double = 30.0, kbps: Int = 1_000, as format: VideoFormat = .mov, url: URL, frame: @escaping (Int) -> (), completion: @escaping (Result<Void, Error>) -> ()) throws {
-    try convertFramesToVideo(count: images.count, image: { images[$0] }, url: url, frame: frame, completion: completion)
-}
-
 public func convertFramesToVideo(
-    count: Int,
-    image: @escaping (Int) throws -> (_Image),
+    stream: AsyncStream<VideoFrame>,
+    resolution: CGSize,
     fps: Double = 30.0,
-    kbps: Int = 1_000,
+    kbps: Int = 10_000,
     format: VideoFormat = .mov,
     codec: VideoCodec = .h264,
-    url: URL,
-    frame: @escaping (Int) -> (),
-    completion: @escaping (Result<Void, Error>) -> ()
-) throws {
-    precondition(count > 0)
+    url: URL
+) async throws {
     precondition(fps > 0)
     precondition(kbps > 0)
-    
-    let imageZero: _Image = try image(0)
-
-    let size: CGSize = imageZero.size
     
     let writer = try AVAssetWriter(url: url, fileType: format.fileType)
 
@@ -115,23 +117,19 @@ public func convertFramesToVideo(
     
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
         AVVideoCodecKey: codec.codec,
-        AVVideoWidthKey: size.width,
-        AVVideoHeightKey: size.height,
+        AVVideoWidthKey: resolution.width,
+        AVVideoHeightKey: resolution.height,
         AVVideoCompressionPropertiesKey: [
             AVVideoAverageBitRateKey: bps,
-//            AVVideoMaxKeyFrameIntervalKey: fps,
-//            AVVideoExpectedSourceFrameRateKey: fps,
-//            AVVideoMaxKeyFrameIntervalDurationKey: 1.0 / Double(fps),
         ],
     ])
-//    input.mediaTimeScale = 30000 //CMTimeScale(fps * 1000)
     
     writer.add(input)
 
     let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
         kCVPixelBufferPixelFormatTypeKey as String : Int(kCVPixelFormatType_32ARGB),
-        kCVPixelBufferWidthKey as String : size.width,
-        kCVPixelBufferHeightKey as String : size.height,
+        kCVPixelBufferWidthKey as String : resolution.width,
+        kCVPixelBufferHeightKey as String : resolution.height,
     ])
 
     writer.startWriting()
@@ -141,35 +139,37 @@ public func convertFramesToVideo(
         return
     }
 
-    let queue = DispatchQueue(label: "render")
+    let queue = DispatchQueue(label: "video-frames")
 
-    var frameIndex: Int = 0
-
-    input.requestMediaDataWhenReady(on: queue, using: {
-        while input.isReadyForMoreMediaData && frameIndex < count {
-            let time: CMTime = CMTimeMake(value: Int64(frameIndex * 1_000),
-                                          timescale: Int32(fps * 1_000))
-            do {
-                let image: _Image = frameIndex > 0 ? try image(frameIndex) : imageZero
-                let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: image)
-                adaptor.append(pixelBuffer, withPresentationTime: time)
-                frame(frameIndex)
-                frameIndex += 1
-            } catch {
-                completion(.failure(error))
-                return
+    let _: Void = try await withCheckedThrowingContinuation { continuation in
+        input.requestMediaDataWhenReady(on: queue) {
+            Task {
+                do {
+                    var frameIndex: Int = 0
+                    for await videoFrame in stream {
+                        guard input.isReadyForMoreMediaData else {
+                            throw ToVideoError.notReadyForMoreMediaData
+                        }
+                        let time: CMTime = CMTimeMake(value: Int64(frameIndex * 1_000),
+                                                      timescale: Int32(fps * 1_000))
+                        let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: videoFrame.image)
+                        adaptor.append(pixelBuffer, withPresentationTime: time)
+                        frameIndex += 1
+                    }
+                    input.markAsFinished()
+                    writer.finishWriting {
+                        if let error = writer.error {
+                            continuation.resume(throwing: error)
+                            return
+                        }
+                        continuation.resume()
+                    }
+                } catch {
+                    continuation.resume(throwing: error)
+                }
             }
         }
-        guard frameIndex >= count else { return }
-        input.markAsFinished()
-        writer.finishWriting {
-            guard writer.error == nil else {
-                completion(.failure(writer.error!))
-                return
-            }
-            completion(.success(()))
-        }
-    })
+    }
 }
 
 func getPixelBuffer(from image: _Image) throws -> CVPixelBuffer {

@@ -3,7 +3,7 @@ import Cocoa
 #else
 import UIKit
 #endif
-import AVFoundation
+@preconcurrency import AVFoundation
 
 #if os(macOS)
 public typealias _Image = NSImage
@@ -11,13 +11,24 @@ public typealias _Image = NSImage
 public typealias _Image = UIImage
 #endif
 
+@globalActor actor VideoActor {
+    static let shared = VideoActor()
+}
+
+public struct VideoFrame: @unchecked Sendable {
+    public let image: _Image
+    public init(image: _Image) {
+        self.image = image
+    }
+}
+
 public enum VideoFramesError: Error {
     case videoNotFound
     case framePixelBuffer(String)
     case videoInfo(String)
 }
 
-public struct VideoInfo {
+public struct VideoInfo: Sendable {
     public let duration: Double
     public let fps: Double
     public let size: CGSize
@@ -39,6 +50,11 @@ public struct VideoInfo {
         fps = try await Double(track.load(.nominalFrameRate))
         size = try await track.load(.naturalSize)
     }
+}
+
+struct Asset: Sendable {
+    let info: VideoInfo
+    let generator: AVAssetImageGenerator
 }
 
 extension String {
