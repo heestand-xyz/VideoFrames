@@ -104,7 +104,7 @@ func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageG
     let (cgImage, _): (CGImage, CMTime) = try await generator.image(at: time)
 #else
     let cgImage: CGImage
-    if #available(iOS 16, macOS 13, visionOS 1.0, *) {
+    if #available(iOS 16, tvOS 16, macOS 13, visionOS 1.0, *) {
         (cgImage, _) = try await generator.image(at: time)
     } else {
         cgImage = try generator.copyCGImage(at: time, actualTime: nil)
