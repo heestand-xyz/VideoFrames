@@ -33,10 +33,12 @@ public struct VideoInfo: Sendable {
     public let fps: Double
     public let size: CGSize
     public var frameCount: Int { Int(duration * fps) }
-    public init(duration: Double, fps: Double, size: CGSize) {
+    public let isStereoscopic: Bool
+    public init(duration: Double, fps: Double, size: CGSize, isStereoscopic: Bool = false) {
         self.duration = duration
         self.fps = min(fps, 240)
         self.size = size
+        self.isStereoscopic = isStereoscopic
     }
     public init(url: URL) async throws {
         let asset = AVAsset(url: url)
@@ -49,6 +51,22 @@ public struct VideoInfo: Sendable {
         duration = try await CMTimeGetSeconds(asset.load(.duration))
         fps = try await Double(track.load(.nominalFrameRate))
         size = try await track.load(.naturalSize)
+        isStereoscopic = try await Self.isStereoscopic(avAsset: asset)
+    }
+    private static func isStereoscopic(avAsset: AVAsset) async throws -> Bool {
+        guard let videoTrack = try await avAsset.loadTracks(withMediaType: .video).first else {
+            return false
+        }
+        /// First attempt with format description
+        let formatDescriptions: [CMFormatDescription] = try await videoTrack.load(.formatDescriptions)
+        for formatDescription in formatDescriptions {
+            if let extensions = CMFormatDescriptionGetExtensions(formatDescription) as? [String: Any] {
+                let hasLeftEye = extensions["HasLeftStereoEyeView"] as? Bool ?? false
+                let hasRightEye = extensions["HasRightStereoEyeView"] as? Bool ?? false
+                return hasLeftEye && hasRightEye
+            }
+        }
+        return false
     }
 }
 
