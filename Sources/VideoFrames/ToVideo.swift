@@ -139,35 +139,31 @@ public func convertFramesToVideo(
         return
     }
 
-    let queue = DispatchQueue(label: "video-frames")
-
-    let _: Void = try await withCheckedThrowingContinuation { continuation in
-        input.requestMediaDataWhenReady(on: queue) {
-            Task {
-                do {
-                    var frameIndex: Int = 0
-                    for await videoFrame in stream {
-                        guard input.isReadyForMoreMediaData else {
-                            throw ToVideoError.notReadyForMoreMediaData
-                        }
-                        let time: CMTime = CMTimeMake(value: Int64(frameIndex * 1_000),
-                                                      timescale: Int32(fps * 1_000))
-                        let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: videoFrame.image)
-                        adaptor.append(pixelBuffer, withPresentationTime: time)
-                        frameIndex += 1
-                    }
-                    input.markAsFinished()
-                    writer.finishWriting {
-                        if let error = writer.error {
-                            continuation.resume(throwing: error)
-                            return
-                        }
-                        continuation.resume()
-                    }
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+    var frameIndex: Int = 0
+    for await videoFrame in stream {
+        let time: CMTime = CMTimeMake(value: Int64(frameIndex * 1_000),
+                                      timescale: Int32(fps * 1_000))
+        let pixelBuffer: CVPixelBuffer = try getPixelBuffer(from: videoFrame.image)
+        var sleepCount: Int = 0
+        while !input.isReadyForMoreMediaData {
+            if sleepCount > 100 {
+                throw ToVideoError.notReadyForMoreMediaData
             }
+            try await Task.sleep(nanoseconds: 10_000_000)
+            sleepCount += 1
+        }
+        adaptor.append(pixelBuffer, withPresentationTime: time)
+        frameIndex += 1
+    }
+    input.markAsFinished()
+    
+    let _: Void = try await withCheckedThrowingContinuation { continuation in
+        writer.finishWriting {
+            if let error = writer.error {
+                continuation.resume(throwing: error)
+                return
+            }
+            continuation.resume()
         }
     }
 }
