@@ -54,10 +54,16 @@ public struct VideoInfo: Sendable {
         isStereoscopic = try await Self.isStereoscopic(avAsset: asset)
     }
     private static func isStereoscopic(avAsset: AVAsset) async throws -> Bool {
+        /// First attempt with stereo multiview video
+        if #available(iOS 17.0, tvOS 17.0, macOS 14.0, visionOS 1.0, *) {
+            if try await avAsset.loadTracks(withMediaCharacteristic: .containsStereoMultiviewVideo).first != nil {
+                return true
+            }
+        }
+        /// Second attempt with format description
         guard let videoTrack = try await avAsset.loadTracks(withMediaType: .video).first else {
             return false
         }
-        /// First attempt with format description
         let formatDescriptions: [CMFormatDescription] = try await videoTrack.load(.formatDescriptions)
         for formatDescription in formatDescriptions {
             if let extensions = CMFormatDescriptionGetExtensions(formatDescription) as? [String: Any] {
