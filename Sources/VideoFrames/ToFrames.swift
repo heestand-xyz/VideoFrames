@@ -111,14 +111,14 @@ public func videoFrame(at time: TimeInterval, from url: URL, info: VideoInfo? = 
     let asset = try await makeAsset(from: url, info: info)
     guard time >= 0.0 && time <= asset.info.duration
     else { throw VideoFrameError.videoTimeOutOfBounds(time: time, duration: asset.info.duration) }
-    let cmTime: CMTime = CMTime(value: CMTimeValue(time * 1_000_000),
-                                timescale: CMTimeScale(1_000_000))
+    let cmTime: CMTime = CMTime(value: CMTimeValue(time * 1_000),
+                                timescale: CMTimeScale(1_000))
     return try await getFrame(at: cmTime, info: asset.info, with: asset.generator)
 }
 
 func getFrame(at frameIndex: Int, info: VideoInfo, with generator: AVAssetImageGenerator) async throws -> _Image {
-    let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000_000),
-                              timescale: CMTimeScale(info.fps * 1_000_000))
+    let time: CMTime = CMTime(value: CMTimeValue(frameIndex * 1_000),
+                              timescale: CMTimeScale(info.fps * 1_000))
     return try await getFrame(at: time, info: info, with: generator)
 }
 
